@@ -1,6 +1,6 @@
-# VS Code Portfolio Template
+# Github Codespaces Inspired Portfolio Template
 
-A modern, interactive portfolio website that mimics the VS Code interface. Perfect for developers who want to showcase their skills in a unique and engaging way.
+A modern, interactive portfolio website that mimics the Github Codespace interface.
 
 ## 🚀 Features
 
