@@ -1,250 +1,423 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { trackPageView, trackFileOpen, trackTerminalCommand, trackResumeDownload, trackContactClick } from './utils/analytics';
-import { portfolioData } from './data/portfolio';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { TopBar } from './components/TopBar';
+import { LeftNavigation } from './components/LeftNavigation';
+import { FileExplorer } from './components/FileExplorer';
+import { LineNumberGutter } from './components/LineNumberGutter';
+import { TabBar } from './components/TabBar';
+import { SubTabBar } from './components/SubTabBar';
+import { WelcomeSection } from './sections/WelcomeSection';
+import { AboutSection } from './sections/AboutSection';
+import { WorkSection } from './sections/WorkSection';
+import { EducationSection } from './sections/EducationSection';
+import { ProjectsSection } from './sections/ProjectsSection';
+import SkillsSection from './sections/SkillsSection';
+import { ContactSection } from './sections/ContactSection';
+import { Terminal } from './components/Terminal';
+import { ResumeSection } from './sections/ResumeSection';
+import { StatusBar } from './components/StatusBar'
+import { Download, Code2 } from 'lucide-react';
 import { 
-  ChevronRight, 
-  ChevronDown, 
-  FileText, 
-  Folder, 
-  FolderOpen,
-  Settings,
-  Search,
-  GitBranch,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  ExternalLink,
-  Github,
-  Linkedin,
-  Code,
-  Briefcase,
-  GraduationCap,
-  Award,
-  X,
-  Maximize2,
-  Minimize2,
-  Terminal as TerminalIcon,
-  Play,
-  Sun,
-  Moon,
-  Download
-} from 'lucide-react';
+  initializeAnalytics,
+  trackPageView, 
+  trackFileOpen, 
+  trackResumeDownload,
+  trackTimeOnPage,
+  trackEvent,
+  trackNavigation,
+  trackInteractiveElement,
+  getAnalyticsDebugInfo,
+  clearStoredUTMParameters
+} from './utils/analytics';
+import { personalInfo } from './data/portfolio';
+
+import './index.css';
+
+interface ContextMenuState {
+  x: number;
+  y: number;
+  fileName: string;
+}
 
 interface FileItem {
   name: string;
   type: 'file' | 'folder';
-  icon?: string;
-  children?: FileItem[];
-  content?: string;
+  color?: string;
   command?: string;
+  children?: FileItem[];
 }
 
-interface TerminalCommand {
-  command: string;
-  output: string;
-  timestamp: string;
+interface FileStructureItem {
+  name: string;
+  type: 'file' | 'folder';
+  color?: string;
+  children?: FileStructureItem[];
 }
 
-const fileStructure: FileItem[] = [
-  {
-    name: 'portfolio',
-    type: 'folder',
-    children: [
-      { name: 'Home.java', type: 'file', icon: '🏠', command: 'home' },
-      { name: 'About.jsx', type: 'file', icon: '👨‍💻', command: 'about' },
-      { name: 'Work.css', type: 'file', icon: '💼', command: 'experience' },
-      { name: 'Contact.html', type: 'file', icon: '📧', command: 'contact' },
-      { name: 'education.yml', type: 'file', icon: '🎓', command: 'education' },
-      { name: 'projects.ts', type: 'file', icon: '🚀', command: 'projects' },
-      { name: 'skills.json', type: 'file', icon: '⚡', command: 'skills' },
-      { name: 'resume.pdf', type: 'file', icon: '📄', command: 'resume' }
-    ]
-  },
-  {
-    name: 'src',
-    type: 'folder',
-    children: [
-      { name: 'components', type: 'folder', children: [] },
-      { name: 'App.tsx', type: 'file', icon: '⚛️' },
-      { name: 'index.css', type: 'file', icon: '🎨' },
-      { name: 'main.tsx', type: 'file', icon: '⚛️' }
-    ]
-  },
-  {
-    name: 'public',
-    type: 'folder',
-    children: [
-      { name: 'index.html', type: 'file', icon: '🌐' }
-    ]
-  },
-  { name: '.gitignore', type: 'file', icon: '📝' },
-  { name: 'package.json', type: 'file', icon: '📦' },
-  { name: 'README.md', type: 'file', icon: '📖' },
-  { name: 'vite.config.ts', type: 'file', icon: '⚡' }
-];
+// Debug Mode Configuration
+const getURLParams = () => new URLSearchParams(window.location.search);
+const DEBUG_MODE = getURLParams().get('devMode') === 'true';
+const DEBUG_ANALYTICS = DEBUG_MODE && (getURLParams().get('analytics') !== 'false');
+const DEBUG_INTERACTIONS = DEBUG_MODE && (getURLParams().get('interactions') !== 'false');
+const DEBUG_PERFORMANCE = DEBUG_MODE && (getURLParams().get('performance') !== 'false');
+
+// Debug Logger
+const debugLog = (category: string, message: string, data?: any) => {
+  if (!DEBUG_MODE) return;
+  
+  const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+  /*const style = `
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: bold;
+  `;*/
+  
+  console.groupCollapsed(`%c[${timestamp}] ${category.toUpperCase()}`,  message);
+  if (data) {
+    console.log('Data:', data);
+  }
+  if (DEBUG_ANALYTICS) {
+    console.log('Analytics State:', getAnalyticsDebugInfo());
+  }
+  console.groupEnd();
+};
 
 function App() {
-  const [activeTab, setActiveTab] = useState('Home.java');
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['portfolio', 'src']));
-  const [activePanel, setActivePanel] = useState('TERMINAL');
-  const [isDarkTheme, setIsDarkTheme] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
-  const [isTerminalOpen, setIsTerminalOpen] = useState(true);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; show: boolean }>({ x: 0, y: 0, show: false });
-  const [sidebarWidth, setSidebarWidth] = useState(280);
-  const [isResizing, setIsResizing] = useState(false);
-  const [terminalHistory, setTerminalHistory] = useState<TerminalCommand[]>([
+  
+  const fileStructure: FileStructureItem[] = [
     {
-      command: 'npm run dev',
-      output: 'Portfolio server running at http://localhost:5173/',
-      timestamp: new Date().toLocaleTimeString()
+      name: 'my-portfolio',
+      type: 'folder',
+      children: [
+        { name: 'About.java', type: 'file', color: 'var(--vscode-accent)' },
+        { name: 'Work.css', type: 'file', color: 'var(--vscode-sky)' },
+        { name: 'education.yml', type: 'file', color: 'var(--vscode-purple)' },
+        { name: 'projects.ts', type: 'file', color: 'var(--vscode-emerald)' },
+        { name: 'skills.json', type: 'file', color: 'var(--vscode-yellow)' },
+        { name: 'Contact.html', type: 'file', color: 'var(--vscode-orange)' },
+        { name: 'resume.pdf', type: 'file', color: 'var(--vscode-red)' }
+      ]
     }
-  ]);
-  const [currentCommand, setCurrentCommand] = useState('');
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const sidebarRef = useRef<HTMLDivElement>(null);
+  ];
 
-  // Handle sidebar resizing
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsResizing(true);
-    e.preventDefault();
-  };
+  // Performance tracking refs
+  const startTime = useRef<number>(Date.now());
+  const lastInteractionTime = useRef<number>(Date.now());
+  const interactionCount = useRef<number>(0);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      
-      const newWidth = e.clientX;
-      if (newWidth >= 200 && newWidth <= 500) {
-        setSidebarWidth(newWidth);
-      }
-    };
+  // State declarations
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isDarkTheme, setIsDarkTheme] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<string>('');
+  const [openTabs, setOpenTabs] = useState<string[]>([]);
+  const [isTerminalOpen, setIsTerminalOpen] = useState<boolean>(false);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [isExplorerCollapsed, setIsExplorerCollapsed] = useState<boolean>(false);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(200);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const [leftNavActiveItem, setLeftNavActiveItem] = useState('explorer');
+  const [isTerminalMinimized, setIsTerminalMinimized] = useState<boolean>(false);
+  const [terminalHeight, setTerminalHeight] = useState<number>(320);
+  const [isTerminalResizing, setIsTerminalResizing] = useState<boolean>(false);
+  const resumeUrl = `${import.meta.env.BASE_URL}assets/${personalInfo.resume}`;
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['my-portfolio']));
 
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-  }, [isResizing]);
-
-  // Track analytics events
-  useEffect(() => {
-    trackPageView('Portfolio Home');
-  }, []);
-
-  const availableCommands = {
-    'help': 'Available commands: home, about, contact, experience, education, projects, skills, resume, clear, ls',
-    'home': 'Loading home section...',
-    'about': 'Loading about section...',
-    'contact': 'Loading contact information...',
-    'experience': 'Loading work experience...',
-    'education': 'Loading education details...',
-    'projects': 'Loading project portfolio...',
-    'skills': 'Loading technical skills...',
-    'resume': 'Opening resume...',
-    'clear': 'Terminal cleared',
-    'ls': 'portfolio/  src/  public/  .gitignore  package.json  README.md  vite.config.ts'
-  };
-
-  useEffect(() => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-    }
-  }, [terminalHistory]);
-
-  useEffect(() => {
-    trackPageView('Portfolio Home');
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setContextMenu({ x: 0, y: 0, show: false });
-      setShowSettings(false);
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  const handleTerminalCommand = (command: string) => {
-    const cmd = command.trim().toLowerCase();
-    const timestamp = new Date().toLocaleTimeString();
+  // Debug: Track user interactions
+  const trackInteraction = (type: string, details: any = {}) => {
+    if (!DEBUG_INTERACTIONS) return;
     
-    if (cmd === 'clear') {
-      setTerminalHistory([]);
-      return;
-    }
-
-    let output = '';
-    if (availableCommands[cmd as keyof typeof availableCommands]) {
-      output = availableCommands[cmd as keyof typeof availableCommands];
-      
-      const portfolioCommands = ['home', 'about', 'contact', 'experience', 'education', 'projects', 'skills', 'resume'];
-      if (portfolioCommands.includes(cmd)) {
-        trackTerminalCommand(cmd);
-        const fileMap: { [key: string]: string } = {
-          'home': 'Home.java',
-          'about': 'About.jsx',
-          'contact': 'Contact.html',
-          'experience': 'Work.css',
-          'education': 'education.yml',
-          'projects': 'projects.ts',
-          'skills': 'skills.json',
-          'resume': 'resume.pdf'
-        };
-        setActiveTab(fileMap[cmd]);
-      }
-    } else {
-      output = `Command not found: ${cmd}. Type 'help' for available commands.`;
-    }
-
-    setTerminalHistory(prev => [...prev, { command, output, timestamp }]);
+    interactionCount.current++;
+    const timeSinceLastInteraction = Date.now() - lastInteractionTime.current;
+    lastInteractionTime.current = Date.now();
+    
+    debugLog('interaction', `User ${type}`, {
+      interactionNumber: interactionCount.current,
+      timeSinceLastInteraction: `${timeSinceLastInteraction}ms`,
+      ...details
+    });
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleTerminalCommand(currentCommand);
-      setCurrentCommand('');
-    }
-  };
 
-  const handleRightClick = (e: React.MouseEvent, fileName: string) => {
-    if (fileName === 'resume.pdf') {
-      e.preventDefault();
-      setContextMenu({
-        x: e.clientX,
-        y: e.clientY,
-        show: true
-      });
-    }
-  };
+
 
   const downloadResume = () => {
-    // Simulate resume download
+    debugLog('download', 'Resume download initiated');
+    trackInteraction('download_resume');
     trackResumeDownload();
+    
     const link = document.createElement('a');
-    link.href = '#';
-    link.download = 'Bhakti_Developer_Resume.pdf';
+    link.href = resumeUrl;
+    link.download = 'Sample_Resume.pdf';
+    document.body.appendChild(link);
     link.click();
-    setContextMenu({ x: 0, y: 0, show: false });
+    document.body.removeChild(link);
+    setContextMenu(null);
+    
+    debugLog('download', 'Resume download completed');
   };
 
+  const handleFileClick = (item: FileItem) => {
+    debugLog('file', `File clicked: ${item.name}`, { fileType: item.type, hasCommand: !!item.command });
+    trackInteraction('file_click', { fileName: item.name, fileType: item.type });
+    trackFileOpen(item.name);
+    
+    // Performance tracking
+    if (DEBUG_PERFORMANCE) {
+      const clickTime = performance.now();
+      requestIdleCallback(() => {
+        const renderTime = performance.now() - clickTime;
+        debugLog('performance', `File render time: ${renderTime.toFixed(2)}ms`);
+      });
+    }
+    
+    // Set dynamic accent color based on file
+    const fileColor = getFileColor(item.name);
+    if (fileColor && fileColor !== 'var(--vscode-accent)') {
+      document.documentElement.style.setProperty('--vscode-accent', fileColor);
+      document.documentElement.style.setProperty('--vscode-accent-hover', fileColor + '90');
+      debugLog('theme', `Accent color changed to: ${fileColor}`);
+    } else {
+      document.documentElement.style.setProperty('--vscode-accent', 'var(--vscode-default-accent)');
+      document.documentElement.style.setProperty('--vscode-accent-hover', 'var(--vscode-default-accent-hover)');
+      debugLog('theme', 'Accent color reset to default');
+    }
+    
+    // Add tab to openTabs if not already open
+    if (!openTabs.includes(item.name)) {
+      setOpenTabs(prev => {
+        const newTabs = [...prev, item.name];
+        debugLog('tabs', `Tab opened: ${item.name}`, { totalTabs: newTabs.length, allTabs: newTabs });
+        return newTabs;
+      });
+    }
+    setActiveTab(item.name);
+    
+    if (item.command) {
+      debugLog('terminal', `Command associated with file: ${item.command}`);
+    }
+  };
+  
+  const handleCloseTab = useCallback((fileName: string) => {
+    debugLog('tabs', `Closing tab: ${fileName}`);
+    trackInteraction('close_tab', { fileName });
+    trackEvent('tab_close', { tab_name: fileName });
+    
+    const newTabs = openTabs.filter(tab => tab !== fileName);
+    setOpenTabs(newTabs);
+      
+    if (activeTab === fileName) {
+      const newActiveTab = newTabs.length > 0 ? newTabs[newTabs.length - 1] : '';
+      setActiveTab(newActiveTab);
+      
+      debugLog('tabs', `Active tab changed to: ${newActiveTab || 'none'}`, { 
+        previousTab: fileName,
+        remainingTabs: newTabs 
+      });
+      
+      // Update accent color for new active tab or reset to default
+      if (newActiveTab) {
+        const fileColor = getFileColor(newActiveTab);
+        if (fileColor && fileColor !== 'var(--vscode-accent)') {
+          document.documentElement.style.setProperty('--vscode-accent', fileColor);
+          document.documentElement.style.setProperty('--vscode-accent-hover', fileColor + '90');
+        } else {
+          document.documentElement.style.setProperty('--vscode-accent', 'var(--vscode-default-accent)');
+          document.documentElement.style.setProperty('--vscode-accent-hover', 'var(--vscode-default-accent-hover)');
+        }
+      } else {
+        document.documentElement.style.setProperty('--vscode-accent', 'var(--vscode-default-accent)');
+        document.documentElement.style.setProperty('--vscode-accent-hover', 'var(--vscode-default-accent-hover)');
+        debugLog('theme', 'All tabs closed - accent color reset');
+      }
+    }
+  }, [openTabs, activeTab, setOpenTabs, setActiveTab]);
+
+  // Handle server click to close all tabs and go to welcome
+  const handleServerClick = () => {
+    debugLog('navigation', 'Server icon clicked - returning to welcome');
+    trackInteraction('server_click');
+    trackNavigation('welcome', activeTab || 'unknown');
+    
+    setOpenTabs([]);
+    setActiveTab('');
+    document.documentElement.style.setProperty('--vscode-accent', 'var(--vscode-default-accent)');
+    document.documentElement.style.setProperty('--vscode-accent-hover', 'var(--vscode-default-accent-hover)');
+  };
+
+  // Helper function to get file color from structure
+  const getFileColor = (fileName: string): string => {
+    for (const folder of fileStructure) {
+      if (folder.children) {
+        const file = folder.children.find(child => child.name === fileName);
+        if (file && file.color) {
+          return file.color;
+        }
+      }
+    }
+    return 'var(--vscode-accent)';
+  };
+
+  const handleSetActiveTab = useCallback((tab: string) => {
+    debugLog('tabs', `Setting active tab: ${tab}`, { previousTab: activeTab });
+    trackInteraction('switch_tab', { newTab: tab, previousTab: activeTab });
+    trackNavigation(tab, activeTab);
+    
+    // Set dynamic accent color based on active tab
+    const fileColor = getFileColor(tab);
+    if (fileColor && fileColor !== 'var(--vscode-accent)') {
+      document.documentElement.style.setProperty('--vscode-accent', fileColor);
+      document.documentElement.style.setProperty('--vscode-accent-hover', fileColor + '90');
+    } else {
+      document.documentElement.style.setProperty('--vscode-accent', 'var(--vscode-default-accent)');
+      document.documentElement.style.setProperty('--vscode-accent-hover', 'var(--vscode-default-accent-hover)');
+    }
+    
+    setActiveTab(tab);
+  }, [setActiveTab, activeTab]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
+    document.documentElement.className = isDarkTheme ? 'dark' : '';
+    debugLog('theme', `Theme changed to: ${isDarkTheme ? 'dark' : 'light'}`);
+  }, [isDarkTheme]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: Event) => {
+      if (contextMenu && event.target && event.target instanceof Element) {
+        if (!event.target.closest('.context-menu')) {
+          debugLog('context', 'Context menu closed by outside click');
+          setContextMenu(null);
+        }
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [contextMenu]);
+
+  // Handle file opening from terminal
+  useEffect(() => {
+    const handleOpenFile = (event: CustomEvent) => {
+      const { fileName } = event.detail;
+      debugLog('terminal', `File open request from terminal: ${fileName}`);
+      trackInteraction('terminal_file_open', { fileName });
+      
+      if (!openTabs.includes(fileName)) {
+        handleFileClick({ name: fileName, type: 'file' });
+      } else {
+        handleSetActiveTab(fileName);
+      }
+    };
+
+    window.addEventListener('openFile', handleOpenFile as EventListener);
+    return () => {
+      window.removeEventListener('openFile', handleOpenFile as EventListener);
+    };
+  }, [openTabs, handleSetActiveTab]);
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    debugLog('resize', 'Sidebar resize started');
+      trackInteraction('resize_start');
+      
+    const target = e.target as HTMLElement;
+    if (target.classList.contains('resize-handle')) {
+      setIsResizing(true);
+      e.preventDefault();
+    }
+    if (target.classList.contains('terminal-resize-handle')) {
+      setIsTerminalResizing(true);
+      e.preventDefault();
+    }
+  }, []);/*
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).classList.contains('resize-handle')) {
+      debugLog('resize', 'Sidebar resize started');
+      trackInteraction('resize_start');
+      setIsResizing(true);
+      e.preventDefault();
+    }
+      if ((e.target as HTMLElement).classList.contains('terminal-resize-handle')) {
+      setIsTerminalResizing(true);
+      e.preventDefault();
+    }
+  }, []);*/
+/*
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = Math.max(200, Math.min(400, e.clientX));
+      setSidebarWidth(newWidth);
+    }
+        if (isTerminalResizing) {
+      const windowHeight = window.innerHeight;
+      const topBarHeight = 36; // TopBar height
+      const availableHeight = windowHeight - topBarHeight;
+      const mouseY = e.clientY - topBarHeight;
+      const newHeight = Math.max(200, Math.min(600, availableHeight - mouseY));
+      setTerminalHeight(newHeight);
+    }
+  }, [isResizing]);*/
+
+   const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = Math.max(200, Math.min(400, e.clientX));
+      setSidebarWidth(newWidth);
+    }
+    if (isTerminalResizing) {
+      const windowHeight = window.innerHeight;
+      const topBarHeight = 36; // TopBar height
+      const availableHeight = windowHeight - topBarHeight;
+      const mouseY = e.clientY - topBarHeight;
+      const newHeight = Math.max(200, Math.min(600, availableHeight - mouseY));
+      setTerminalHeight(newHeight);
+    }
+  }, [isResizing, isTerminalResizing]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+    setIsTerminalResizing(false);
+  }, []);
+
+
+  // Initialize analytics when app loads
+  useEffect(() => {
+    debugLog('init', 'Application initializing');
+    
+    // Small delay to ensure GTM is loaded first
+    setTimeout(() => {
+      initializeAnalytics();
+      trackPageView('Portfolio Home');
+      debugLog('analytics', 'Analytics initialized');
+      
+      if (DEBUG_MODE) {
+        // Add debug utilities to window for console access
+        (window as any).portfolioDebug = {
+          getAnalyticsInfo: getAnalyticsDebugInfo,
+          clearUTM: clearStoredUTMParameters,
+          trackTestEvent: (name: string, data: any) => trackEvent(name, data),
+          logInteractionCount: () => console.log(`Interactions: ${interactionCount.current}`),
+          getPerformanceData: () => ({
+            appLoadTime: Date.now() - startTime.current,
+            interactionCount: interactionCount.current,
+            openTabs: openTabs.length,
+            activeTab
+          })
+        };
+        
+        debugLog('debug', 'Debug utilities added to window.portfolioDebug');
+        console.log('🔧 Debug Mode Active - Use window.portfolioDebug for testing');
+      }
+    }, 100);
+    
+    startTime.current = Date.now();
+  }, []);
+
   const toggleFolder = (folderName: string) => {
+    debugLog('explorer', `Folder toggle: ${folderName}`);
+    trackInteraction('folder_toggle', { folderName, wasExpanded: expandedFolders.has(folderName) });
+    trackInteractiveElement('folder', folderName, 'toggle');
+    
     const newExpanded = new Set(expandedFolders);
-    if (newExpanded.has(folderName)) {
+    if (expandedFolders.has(folderName)) {
       newExpanded.delete(folderName);
     } else {
       newExpanded.add(folderName);
@@ -252,240 +425,180 @@ function App() {
     setExpandedFolders(newExpanded);
   };
 
-  const themeClasses = {
-    bg: isDarkTheme ? 'bg-gray-900' : 'bg-white',
-    bgSecondary: isDarkTheme ? 'bg-gray-800' : 'bg-gray-100',
-    bgTertiary: isDarkTheme ? 'bg-gray-700' : 'bg-gray-200',
-    text: isDarkTheme ? 'text-gray-300' : 'text-gray-700',
-    textPrimary: isDarkTheme ? 'text-white' : 'text-gray-900',
-    textSecondary: isDarkTheme ? 'text-gray-400' : 'text-gray-600',
-    border: isDarkTheme ? 'border-gray-700' : 'border-gray-300',
-    hover: isDarkTheme ? 'hover:bg-gray-700/50' : 'hover:bg-gray-200/50',
-    accent: isDarkTheme ? 'text-blue-400' : 'text-blue-600'
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const timeSpent = (Date.now() - startTime.current) / 1000;
+      debugLog('session', `Session ending - time spent: ${timeSpent.toFixed(1)}s, interactions: ${interactionCount.current}`);
+      
+      if (timeSpent > 5) {
+        trackTimeOnPage(timeSpent, 'portfolio_home');
+        trackEvent('session_end', {
+          time_spent_seconds: Math.round(timeSpent),
+          total_interactions: interactionCount.current,
+          tabs_opened: openTabs.length,
+          final_active_tab: activeTab
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [openTabs.length, activeTab]);
+
+  // Simple 3s loading delay with performance tracking
+  useEffect(() => {
+    const loadStartTime = performance.now();
+    
+    const loadingTimer = setTimeout(() => {
+      const loadTime = performance.now() - loadStartTime;
+      //debugLog('performance', `App load completed in ${loadTime.toFixed(2)}ms`);
+      trackEvent('app_load_complete', { load_time_ms: Math.round(loadTime) });
+      setIsLoading(false);
+    }, 3000);
+
+    return () => {
+      clearTimeout(loadingTimer);
+    };
+  }, []);
+/*
+  useEffect(() => {
+  if (isResizing) {
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }
+}, [isResizing, handleMouseMove, handleMouseUp]);*/
+  useEffect(() => {
+    if (isResizing || isTerminalResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = isResizing ? 'col-resize' : 'ns-resize';
+      document.body.style.userSelect = 'none';
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [isResizing, isTerminalResizing, handleMouseMove, handleMouseUp]);
+
+
+  const handleRightClick = (e: React.MouseEvent, fileName: string) => {
+    e.preventDefault();
+    debugLog('context', `Right click on: ${fileName}`, { x: e.clientX, y: e.clientY });
+    trackInteraction('right_click', { fileName, x: e.clientX, y: e.clientY });
+    trackInteractiveElement('file', fileName, 'right_click');
+    
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      fileName
+    });
   };
 
-  const renderFileTree = (items: FileItem[], level = 0) => {
-    return items.map((item, index) => (
-      <div key={index}>
-        <div 
-          className={`flex items-center py-1 px-2 ${themeClasses.hover} cursor-pointer text-sm ${
-            activeTab === item.name ? `bg-blue-600/30 ${themeClasses.accent}` : themeClasses.text
-          }`}
-          style={{ paddingLeft: `${8 + level * 16}px` }}
-          onClick={() => {
-            if (item.type === 'folder') {
-              toggleFolder(item.name);
-            } else {
-              setActiveTab(item.name);
-              if (item.command) {
-                trackFileOpen(item.name);
-                handleTerminalCommand(item.command);
-              }
-            }
-          }}
-          onContextMenu={(e) => handleRightClick(e, item.name)}
-        >
-          {item.type === 'folder' ? (
-            <>
-              {expandedFolders.has(item.name) ? (
-                <ChevronDown className="w-4 h-4 mr-1" />
-              ) : (
-                <ChevronRight className="w-4 h-4 mr-1" />
-              )}
-              {expandedFolders.has(item.name) ? (
-                <FolderOpen className={`w-4 h-4 mr-2 ${themeClasses.accent}`} />
-              ) : (
-                <Folder className={`w-4 h-4 mr-2 ${themeClasses.accent}`} />
-              )}
-            </>
-          ) : (
-            <FileText className={`w-4 h-4 mr-2 ml-5 ${themeClasses.textSecondary}`} />
-          )}
-          <span className="flex-1">{item.name}</span>
-          {item.icon && (
-            <span className="text-xs ml-2">{item.icon}</span>
-          )}
+  const LoadingScreen = () => {
+    useEffect(() => {
+      debugLog('loading', 'Loading screen displayed');
+      trackEvent('loading_screen_shown');
+    }, []);
+
+    return (
+      <div className="h-screen bg-black flex flex-col items-center justify-center transition-colors text-center space-y-6">
+        <div className="w-24 h-24 bg-gray-500 rounded-full flex items-center justify-center shadow-2xl">
+          <Code2 size={70} className="text-white" />
         </div>
-        {item.type === 'folder' && expandedFolders.has(item.name) && item.children && (
-          <div>
-            {renderFileTree(item.children, level + 1)}
-          </div>
-        )}
+        
+        <p className="text-gray-400 text-sm">
+          Setting up your development environment
+          {DEBUG_MODE && <span className="block text-xs text-purple-400 mt-2">Debug Mode Active</span>}
+        </p>
+        
+        <div className="space-x-2">
+          <span className="dot bg-sky-400 inline-block"></span>
+          <span className="dot bg-red-400 inline-block"></span>
+          <span className="dot bg-purple-400 inline-block"></span>
+          <span className="dot bg-amber-400 inline-block"></span>
+          <span className="dot bg-green-400 inline-block"></span>
+        </div>
       </div>
-    ));
+    );
   };
 
   const getTabContent = () => {
-    const contentClasses = `p-8 ${themeClasses.text} max-w-4xl mx-auto`;
-    
+    const contentClasses = `flex-1 overflow-y-auto text-themed transition-all duration-300`;
+    const paddingClasses = `p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6 2xl:p-8 flex-1`;
+
+    // Show welcome screen if no tabs are open
+    if (openTabs.length === 0 || !activeTab) {
+      debugLog('content', 'Rendering welcome section');
+      return (
+        <div className={contentClasses}>
+          <WelcomeSection 
+            setActiveTab={handleSetActiveTab} 
+            openTabs={openTabs} 
+            setOpenTabs={setOpenTabs} 
+          />
+        </div>
+      );
+    }
+
+    debugLog('content', `Rendering content for tab: ${activeTab}`);
+
     switch (activeTab) {
-      case 'Home.java':
+      case 'About.java':
         return (
           <div className={contentClasses}>
-            <div className="text-center py-20">
-              <div className="mb-8">
-                <img 
-                  src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop" 
-                  alt="Profile" 
-                  className="w-24 h-24 rounded-full mx-auto mb-6 border-2 border-gradient-to-r from-orange-400 to-pink-400 shadow-lg"
-                />
-              </div>
-              <div className="mb-8">
-                <h1 className={`text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 bg-clip-text text-transparent`}>
-                  Bhakti Developer
-                </h1>
-                <div className={`text-sm md:text-base ${themeClasses.textSecondary} mb-6 font-mono`}>
-                  <span className="text-purple-400">const</span> <span className={themeClasses.textPrimary}>developer</span> = {'{'}
-                  <br />
-                  <span className="ml-4 text-blue-400">name:</span> <span className="text-green-400">"Bhakti.dev"</span>,
-                  <br />
-                  <span className="ml-4 text-blue-400">role:</span> <span className="text-green-400">"Full Stack Developer"</span>,
-                  <br />
-                  <span className="ml-4 text-blue-400">backend:</span> <span className="text-yellow-400">true</span>,
-                  <br />
-                  <span className="ml-4 text-blue-400">frontend:</span> <span className="text-yellow-400">true</span>
-                  <br />
-                  {'}'}
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                <button 
-                  onClick={() => setActiveTab('Contact.html')}
-                  className={`px-6 py-2 text-sm border ${isDarkTheme ? 'border-gray-600 hover:border-gray-500' : 'border-gray-400 hover:border-gray-600'} rounded transition-colors ${themeClasses.text} hover:${themeClasses.textPrimary}`}
-                >
-                  Contact
-                </button>
-                <button 
-                  onClick={() => setActiveTab('Work.css')}
-                  className="px-6 py-2 text-sm bg-gradient-to-r from-orange-400 to-red-400 text-white rounded hover:from-orange-500 hover:to-red-500 transition-all"
-                >
-                  Work
-                </button>
-              </div>
-
-              <div className={`grid md:grid-cols-3 gap-4 mt-12 ${themeClasses.textSecondary}`}>
-                <div className={`p-4 ${themeClasses.bgSecondary} rounded border ${themeClasses.border}`}>
-                  <Code className="w-6 h-6 mb-3 text-blue-400" />
-                  <h3 className={`text-sm font-semibold mb-2 ${themeClasses.textPrimary}`}>Frontend</h3>
-                  <p className="text-xs">React, Vue.js, TypeScript, Tailwind CSS</p>
-                </div>
-                <div className={`p-4 ${themeClasses.bgSecondary} rounded border ${themeClasses.border}`}>
-                  <Briefcase className="w-6 h-6 mb-3 text-green-400" />
-                  <h3 className={`text-sm font-semibold mb-2 ${themeClasses.textPrimary}`}>Backend</h3>
-                  <p className="text-xs">Node.js, Python, PostgreSQL, MongoDB</p>
-                </div>
-                <div className={`p-4 ${themeClasses.bgSecondary} rounded border ${themeClasses.border}`}>
-                  <Award className="w-6 h-6 mb-3 text-purple-400" />
-                  <h3 className={`text-sm font-semibold mb-2 ${themeClasses.textPrimary}`}>Design</h3>
-                  <p className="text-xs">UI/UX Design, Figma, Adobe Creative Suite</p>
+            <div className="flex">
+              <LineNumberGutter lineCount={50} />
+              <div className={paddingClasses}>
+                <div className="font-mono">
+                  <AboutSection setActiveTab={handleSetActiveTab} openTabs={openTabs} setOpenTabs={setOpenTabs} />
                 </div>
               </div>
             </div>
           </div>
         );
-      
-      case 'About.jsx':
-        return (
-          <div className={contentClasses}>
-            <div className="mb-8">
-              <h1 className={`text-xl font-bold ${themeClasses.textPrimary} mb-4 flex items-center gap-3`}>
-                <User className="w-5 h-5 text-blue-400" />
-                About Me
-              </h1>
-              <div className="w-12 h-0.5 bg-blue-400 mb-4"></div>
-            </div>
-            
-            <div className="space-y-6">
-              <div className={`${themeClasses.bgSecondary} border ${themeClasses.border} rounded p-4`}>
-                <div className={`text-sm font-mono ${themeClasses.textPrimary} mb-3`}>
-                  <span className="text-gray-500">// </span>
-                  <span className="text-purple-400">class</span> <span className="text-yellow-400">Developer</span> <span className="text-purple-400">extends</span> <span className="text-blue-400">Human</span>
-                </div>
-                <p className={`${themeClasses.text} leading-relaxed mb-3 text-sm`}>
-                  I'm a passionate full-stack developer with 5+ years of experience building scalable web applications. 
-                  I specialize in React, Node.js, and modern cloud technologies, always striving to create intuitive 
-                  user experiences backed by robust, maintainable code.
-                </p>
-                <p className={`${themeClasses.text} leading-relaxed text-sm`}>
-                  When I'm not coding, you'll find me exploring new technologies, contributing to open-source projects, 
-                  or sharing knowledge with the developer community through technical writing and mentoring.
-                </p>
-              </div>
 
-              <div className={`${themeClasses.bgSecondary} border ${themeClasses.border} rounded p-4`}>
-                <h3 className={`text-sm font-semibold ${themeClasses.textPrimary} mb-3 font-mono`}>
-                  <span className="text-purple-400">const</span> <span className="text-blue-400">techStack</span> = [
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {['React', 'TypeScript', 'Node.js', 'Python', 'PostgreSQL', 'AWS', 'Docker', 'GraphQL'].map((tech) => (
-                    <div key={tech} className={`${themeClasses.bgTertiary} border ${themeClasses.border} rounded px-2 py-1 text-center text-xs font-mono`}>
-                      <span className="text-green-400">"{tech}"</span>
-                    </div>
-                  ))}
-                </div>
-                <div className={`text-sm font-mono ${themeClasses.textPrimary} mt-2`}>];</div>
-              </div>
-            </div>
-          </div>
-        );
-      
       case 'Work.css':
         return (
           <div className={contentClasses}>
-            <div className="mb-8">
-              <h1 className={`text-xl font-bold ${themeClasses.textPrimary} mb-4 flex items-center gap-3`}>
-                <Briefcase className="w-5 h-5 text-green-400" />
-                Work Experience
-              </h1>
-              <div className="w-12 h-0.5 bg-green-400 mb-4"></div>
-            </div>
-
-            <div className="space-y-6">
-              {[
-                {
-                  title: 'Senior Full Stack Developer',
-                  company: 'TechCorp Solutions',
-                  period: '2022 - Present',
-                  description: 'Led development of microservices architecture serving 1M+ users. Implemented CI/CD pipelines and mentored junior developers.',
-                  technologies: ['React', 'Node.js', 'PostgreSQL', 'AWS', 'Docker']
-                },
-                {
-                  title: 'Full Stack Developer',
-                  company: 'StartupXYZ',
-                  period: '2020 - 2022',
-                  description: 'Built MVP from ground up, scaling to 100K+ users. Developed real-time features using WebSockets and implemented payment processing.',
-                  technologies: ['Vue.js', 'Express.js', 'MongoDB', 'Stripe', 'Redis']
-                },
-                {
-                  title: 'Frontend Developer',
-                  company: 'Digital Agency',
-                  period: '2019 - 2020',
-                  description: 'Created responsive web applications for various clients. Improved site performance by 40% through optimization techniques.',
-                  technologies: ['React', 'JavaScript', 'SCSS', 'Webpack', 'Jest']
-                }
-              ].map((job, index) => (
-                <div key={index} className={`${themeClasses.bgSecondary} border ${themeClasses.border} rounded p-4`}>
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                    <div>
-                      <h3 className={`text-sm font-semibold ${themeClasses.textPrimary} mb-1`}>{job.title}</h3>
-                      <p className="text-green-400 font-medium text-xs">{job.company}</p>
-                    </div>
-                    <div className={`flex items-center gap-2 ${themeClasses.textSecondary} mt-2 md:mt-0 text-xs`}>
-                      <Calendar className="h-4 w-4" />
-                      <span>{job.period}</span>
-                    </div>
-                  </div>
-                  <p className={`${themeClasses.text} mb-3 text-sm`}>{job.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {job.technologies.map((tech) => (
-                      <span key={tech} className={`px-2 py-1 ${themeClasses.bgTertiary} ${themeClasses.text} rounded text-xs font-mono`}>
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
+            <div className="flex">
+              <LineNumberGutter lineCount={80} />
+              <div className={paddingClasses}>
+                <div className="font-mono">
+                  <WorkSection color={getFileColor('Work.css')} />
                 </div>
-              ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'projects.ts':
+        return (
+          <div className={contentClasses}>
+            <div className="flex">
+              <LineNumberGutter lineCount={60} />
+              <div className={paddingClasses}>
+                <div className="font-mono">
+                  <ProjectsSection color="var(--vscode-green)" />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'skills.json':
+        return (
+          <div className={contentClasses}>
+            <div className="flex">
+              <LineNumberGutter lineCount={70} />
+              <div className={paddingClasses}>
+                <SkillsSection />
+              </div>
             </div>
           </div>
         );
@@ -493,57 +606,22 @@ function App() {
       case 'Contact.html':
         return (
           <div className={contentClasses}>
-            <div className="mb-8">
-              <h1 className={`text-xl font-bold ${themeClasses.textPrimary} mb-4 flex items-center gap-3`}>
-                <Mail className="w-5 h-5 text-red-400" />
-                Contact Information
-              </h1>
-              <div className="w-12 h-0.5 bg-red-400 mb-4"></div>
+            <div className="flex">
+              <LineNumberGutter lineCount={50} />
+              <div className={paddingClasses}>
+                <ContactSection />
+              </div>
             </div>
+          </div>
+        );
 
-            <div className="space-y-6">
-              <div className={`${themeClasses.bgSecondary} border ${themeClasses.border} rounded p-4`}>
-                <div className={`text-sm font-mono ${themeClasses.textPrimary} mb-3`}>
-                  <span className="text-purple-400">const</span> <span className="text-blue-400">contact</span> = {'{'}
-                </div>
-                <p className={`${themeClasses.text} mb-4 text-sm ml-4`}>
-                  I'm always open to discussing new opportunities, interesting projects, or just having a chat about technology.
-                </p>
-                
-                <div className="grid md:grid-cols-2 gap-4 ml-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-sm">
-                      <Mail className="h-5 w-5 text-red-400" />
-                      <span className="font-mono text-green-400">"bhakti.developer@email.com"</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Phone className="h-5 w-5 text-red-400" />
-                      <span className="font-mono text-green-400">"+1 (555) 123-4567"</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <MapPin className="h-5 w-5 text-red-400" />
-                      <span className="font-mono text-green-400">"San Francisco, CA"</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <a 
-                      href="https://github.com" 
-                      className={`flex items-center gap-3 ${themeClasses.text} hover:text-red-400 transition-colors text-sm`}
-                    >
-                      <Github className="h-5 w-5" />
-                      <span className="font-mono text-blue-400">github.com/bhaktideveloper</span>
-                    </a>
-                    <a 
-                      href="https://linkedin.com" 
-                      className={`flex items-center gap-3 ${themeClasses.text} hover:text-red-400 transition-colors text-sm`}
-                    >
-                      <Linkedin className="h-5 w-5" />
-                      <span className="font-mono text-blue-400">linkedin.com/in/bhaktideveloper</span>
-                    </a>
-                  </div>
-                </div>
-                <div className={`text-sm font-mono ${themeClasses.textPrimary} mt-3`}></div>
+      case 'education.yml':
+        return (
+          <div className={contentClasses}>
+            <div className="flex">
+              <LineNumberGutter lineCount={30} />
+              <div className={paddingClasses}>
+                <EducationSection color={getFileColor('education.yml')} />
               </div>
             </div>
           </div>
@@ -552,363 +630,187 @@ function App() {
       case 'resume.pdf':
         return (
           <div className={contentClasses}>
-            <div className="mb-8">
-              <h1 className={`text-xl font-bold ${themeClasses.textPrimary} mb-4 flex items-center gap-3`}>
-                <FileText className="w-5 h-5 text-purple-400" />
-                Resume
-              </h1>
-              <div className="w-12 h-0.5 bg-purple-400 mb-4"></div>
-            </div>
-
-            <div className="space-y-8">
-              {/* PDF Viewer Simulation */}
-              <div className={`${themeClasses.bgSecondary} border ${themeClasses.border} rounded p-6`}>
-                <div className="text-center mb-6">
-                  <div className={`inline-flex items-center gap-2 px-3 py-2 ${themeClasses.bgTertiary} rounded mb-3`}>
-                    <FileText className="w-5 h-5 text-purple-400" />
-                    <span className={`${themeClasses.textPrimary} font-medium text-sm`}>Bhakti_Developer_Resume.pdf</span>
-                  </div>
-                  <p className={`${themeClasses.textSecondary} mb-4 text-sm`}>
-                    Right-click on resume.pdf in the file explorer to download
-                  </p>
-                </div>
-
-                {/* Resume Content */}
-                <div className={`${themeClasses.bg} border ${themeClasses.border} rounded p-6 max-w-3xl mx-auto`}>
-                  <div className="text-center mb-6">
-                    <h1 className={`text-xl font-bold ${themeClasses.textPrimary} mb-2`}>Bhakti Developer</h1>
-                    <p className={`${themeClasses.textSecondary} mb-3 text-sm`}>Full Stack Developer & UI/UX Designer</p>
-                    <div className={`flex flex-wrap justify-center gap-4 text-xs ${themeClasses.textSecondary}`}>
-                      <span>📧 bhakti.developer@email.com</span>
-                      <span>📱 +1 (555) 123-4567</span>
-                      <span>📍 San Francisco, CA</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div>
-                      <h2 className={`text-sm font-bold ${themeClasses.textPrimary} mb-2 border-b ${themeClasses.border} pb-1`}>
-                        Professional Summary
-                      </h2>
-                      <p className={`${themeClasses.text} leading-relaxed text-xs`}>
-                        Experienced Full Stack Developer with 5+ years of expertise in React, Node.js, and cloud technologies. 
-                        Proven track record of building scalable applications serving 1M+ users and leading development teams.
-                      </p>
-                    </div>
-
-                    <div>
-                      <h2 className={`text-sm font-bold ${themeClasses.textPrimary} mb-2 border-b ${themeClasses.border} pb-1`}>
-                        Technical Skills
-                      </h2>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <h3 className={`font-semibold ${themeClasses.textPrimary} mb-1 text-xs`}>Frontend</h3>
-                          <p className={`${themeClasses.textSecondary} text-xs`}>React, Vue.js, TypeScript, Tailwind CSS</p>
-                        </div>
-                        <div>
-                          <h3 className={`font-semibold ${themeClasses.textPrimary} mb-1 text-xs`}>Backend</h3>
-                          <p className={`${themeClasses.textSecondary} text-xs`}>Node.js, Python, PostgreSQL, MongoDB</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h2 className={`text-sm font-bold ${themeClasses.textPrimary} mb-2 border-b ${themeClasses.border} pb-1`}>
-                        Experience
-                      </h2>
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className={`font-semibold ${themeClasses.textPrimary} text-xs`}>Senior Full Stack Developer</h3>
-                          <p className={`${themeClasses.textSecondary} text-xs`}>TechCorp Solutions • 2022 - Present</p>
-                          <p className={`${themeClasses.text} text-xs mt-1`}>
-                            Led development of microservices architecture serving 1M+ users
-                          </p>
-                        </div>
-                        <div>
-                          <h3 className={`font-semibold ${themeClasses.textPrimary} text-xs`}>Full Stack Developer</h3>
-                          <p className={`${themeClasses.textSecondary} text-xs`}>StartupXYZ • 2020 - 2022</p>
-                          <p className={`${themeClasses.text} text-xs mt-1`}>
-                            Built MVP from ground up, scaling to 100K+ users
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <div className="flex">
+              <LineNumberGutter lineCount={100} />
+              <div className={paddingClasses}>
+                <ResumeSection color={getFileColor('resume.pdf')}/>
               </div>
             </div>
           </div>
         );
 
-      // Add other cases for education, projects, skills, resume...
       default:
+        debugLog('content', `Unknown tab: ${activeTab}, showing welcome`);
         return (
           <div className={contentClasses}>
-            <div className={`${themeClasses.bgSecondary} border ${themeClasses.border} rounded p-4 mb-6`}>
-              <div className={`text-sm font-mono ${themeClasses.textPrimary} mb-3`}>
-                <span className="text-gray-500">// </span>
-                <span className="text-purple-400">Welcome to</span> <span className="text-blue-400">Bhakti.dev</span>
+            <div className="flex">
+              <LineNumberGutter lineCount={20} />
+              <div className={paddingClasses}>
+                <WelcomeSection 
+                  setActiveTab={handleSetActiveTab} 
+                  openTabs={openTabs} 
+                  setOpenTabs={setOpenTabs} 
+                />
               </div>
-              <p className={`${themeClasses.text} text-sm mb-4`}>Select a file from the explorer or use terminal commands to navigate.</p>
-              <h3 className={`text-sm font-semibold ${themeClasses.textPrimary} mb-2 font-mono`}>
-                <span className="text-purple-400">const</span> <span className="text-blue-400">availableCommands</span> = [
-              </h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <code className="text-green-400 text-xs ml-4">"home"</code>
-                <code className="text-green-400 text-xs">"about"</code>
-                <code className="text-green-400 text-xs ml-4">"contact"</code>
-                <code className="text-green-400 text-xs">"experience"</code>
-                <code className="text-green-400 text-xs ml-4">"education"</code>
-                <code className="text-green-400 text-xs">"projects"</code>
-                <code className="text-green-400 text-xs ml-4">"skills"</code>
-                <code className="text-green-400 text-xs">"help"</code>
-              </div>
-              <div className={`text-sm font-mono ${themeClasses.textPrimary} mt-2`}>];</div>
             </div>
           </div>
         );
     }
   };
 
+  // Show loading screen initially
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
-    <div className={`h-screen ${themeClasses.bg} ${themeClasses.text} flex flex-col`}>
-      {/* Top Bar */}
-      <div className={`${themeClasses.bgSecondary} border-b ${themeClasses.border} px-4 py-2 flex items-center justify-between`}>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Code className={`w-5 h-5 ${themeClasses.accent}`} />
-            <span className="text-sm font-medium">bhakti-portfolio [Codespaces: obscure space meme]</span>
-          </div>
+    <div id="app-root" className="h-screen bg-vscode-primary text-vscode-primary flex flex-col overflow-hidden theme-transition">
+      {/* Debug Panel (only in debug mode) */}
+      {/*{DEBUG_MODE && (
+        <div className="fixed top-4 right-4 z-50 bg-purple-900 text-white p-2 rounded text-xs opacity-80">
+          <div>🔧 Debug Mode</div>
+          <div>Interactions: {interactionCount.current}</div>
+          <div>Active Tab: {activeTab || 'none'}</div>
+          <div>Open Tabs: {openTabs.length}</div>
         </div>
-        <div className="flex items-center gap-2 relative">
-          <Settings 
-            className={`w-4 h-4 ${themeClasses.textSecondary} hover:${themeClasses.textPrimary} cursor-pointer`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowSettings(!showSettings);
-            }}
+      )}*/}
+      
+      <TopBar 
+        id="app-top-bar" 
+        isDarkTheme={isDarkTheme} 
+        setIsDarkTheme={setIsDarkTheme}   
+        onServerClick={handleServerClick}
+      />
+      
+      <div id="app-main-container" className="flex flex-1 overflow-hidden">
+        
+        <LeftNavigation
+          id="app-left-navigation"
+          isExplorerCollapsed={isExplorerCollapsed}
+          setIsExplorerCollapsed={setIsExplorerCollapsed}
+          isTerminalOpen={isTerminalOpen}
+          setIsTerminalOpen={setIsTerminalOpen}
+          isTerminalMinimized={isTerminalMinimized}
+          setIsTerminalMinimized={setIsTerminalMinimized}
+          isDarkTheme={isDarkTheme}
+          setIsDarkTheme={setIsDarkTheme}
+/*          setShowFloatingForm={setShowFloatingForm}
+*/          activeNavItem={leftNavActiveItem}
+          setActiveNavItem={setLeftNavActiveItem}
+        />
+
+        <FileExplorer
+          id="app-file-explorer"
+          fileStructure={fileStructure}
+          activeTab={activeTab}
+          expandedFolders={expandedFolders}
+          sidebarWidth={sidebarWidth}
+          isResizing={isResizing}
+          isCollapsed={isExplorerCollapsed}
+          setIsCollapsed={setIsExplorerCollapsed}
+          onFileClick={handleFileClick}
+          onFolderToggle={toggleFolder}
+          onRightClick={handleRightClick}
+          onMouseDown={handleMouseDown}
+        />
+    
+        <div id="app-content-area" className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isExplorerCollapsed ? 'ml-0' : ''}`}>
+          <TabBar
+            id="app-tab-bar"
+            fileStructure={fileStructure}
+            activeTab={activeTab}
+            openTabs={openTabs}
+            setActiveTab={handleSetActiveTab}
+            onCloseTab={handleCloseTab}
           />
-          
-          {/* Settings Dropdown */}
-          {showSettings && (
-            <div className={`absolute top-8 right-0 ${themeClasses.bgSecondary} border ${themeClasses.border} rounded-lg shadow-lg p-3 z-50 min-w-48`}>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Theme</span>
-                <button
-                  onClick={() => setIsDarkTheme(!isDarkTheme)}
-                  className={`flex items-center gap-2 px-3 py-1 rounded ${themeClasses.bgTertiary} hover:${themeClasses.hover} transition-colors`}
-                >
-                  {isDarkTheme ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  <span className="text-sm">{isDarkTheme ? 'Light' : 'Dark'}</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+          {openTabs.length > 0 && <SubTabBar id="app-sub-tab-bar" activeTab={activeTab} baseFolderPath={fileStructure[0].name}/>}
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <div ref={sidebarRef} className={`${themeClasses.bgSecondary} border-r ${themeClasses.border} flex flex-col relative`} style={{ width: `${sidebarWidth}px` }}>
-          {/* Resize Handle */}
-          <div 
-            className={`absolute top-0 right-0 w-1 h-full cursor-col-resize ${themeClasses.hover} ${isResizing ? 'bg-blue-500' : ''}`}
-            onMouseDown={handleMouseDown}
-          />
-          
-          {/* Explorer Header */}
-          <div className={`p-3 border-b ${themeClasses.border}`}>
-            <div className="flex items-center justify-between">
-              <span className={`text-xs font-semibold ${themeClasses.textSecondary} uppercase tracking-wide`}>Explorer</span>
-            </div>
-          </div>
-
-          {/* File Tree */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="py-2">
-              <div className={`flex items-center px-3 py-1 text-sm font-medium ${themeClasses.text}`}>
-                <ChevronDown className="w-4 h-4 mr-1" />
-                <span>BHAKTI-PORTFOLIO</span>
-              </div>
-              <div className="mt-1">
-                {renderFileTree(fileStructure)}
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Icons */}
-          <div className={`border-t ${themeClasses.border} p-2`}>
-            <div className="flex flex-col gap-2">
-              <div className={`flex items-center gap-2 text-xs ${themeClasses.textSecondary}`}>
-                <Search className="w-4 h-4" />
-                <span>OUTLINE</span>
-              </div>
-              <div className={`flex items-center gap-2 text-xs ${themeClasses.textSecondary}`}>
-                <GitBranch className="w-4 h-4" />
-                <span>TIMELINE</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          {/* Tab Bar */}
-          <div className={`${themeClasses.bgSecondary} border-b ${themeClasses.border} flex items-center`}>
-            <div className="flex">
-              {['Home.java', 'About.jsx', 'Work.css', 'Contact.html'].map((tab) => (
-                <div
-                  key={tab}
-                  className={`px-4 py-2 text-sm border-r ${themeClasses.border} cursor-pointer flex items-center gap-2 ${
-                    activeTab === tab 
-                      ? `${themeClasses.bg} ${themeClasses.textPrimary} border-t-2 border-t-blue-400` 
-                      : `${themeClasses.textSecondary} hover:${themeClasses.textPrimary} ${themeClasses.hover}`
-                  }`}
-                  onClick={() => setActiveTab(tab)}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>{tab}</span>
-                  {activeTab === tab && (
-                    <X className="w-3 h-3 ml-1 hover:bg-gray-600 rounded" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Content Area */}
-          <div className={`flex-1 overflow-y-auto ${themeClasses.bg} ${!isTerminalOpen ? 'pb-0' : ''}`}>
+          <div id="app-main-content" className={`main-content-area flex-1 ${activeTab ? 'overflow-y-auto' : 'overflow-y-auto'} bg-themed transition-all duration-300 ${
+            isTerminalOpen ? 'pb-0' : ''
+          }`}>
             {getTabContent()}
           </div>
 
-          {/* Bottom Panel - Conditionally Rendered */}
           {isTerminalOpen && (
-            <div className={`h-48 ${themeClasses.bgSecondary} border-t ${themeClasses.border} flex flex-col`}>
-            {/* Panel Tabs */}
-            <div className={`flex items-center border-b ${themeClasses.border}`}>
-              {['PROBLEMS', 'OUTPUT', 'DEBUG CONSOLE', 'TERMINAL', 'PORTS'].map((panel) => (
-                <button
-                  key={panel}
-                  className={`px-4 py-2 text-xs font-medium border-r ${themeClasses.border} ${
-                    activePanel === panel 
-                      ? `${themeClasses.bg} ${themeClasses.textPrimary}` 
-                      : `${themeClasses.textSecondary} hover:${themeClasses.textPrimary} ${themeClasses.hover}`
-                  }`}
-                  onClick={() => setActivePanel(panel)}
-                >
-                  {panel}
-                </button>
-              ))}
-              <div className="flex-1"></div>
-              <div className="flex items-center gap-2 px-4">
-                <input 
-                  type="text" 
-                  placeholder="Filter (e.g. text, !exclude, \\escape)"
-                  className={`${themeClasses.bgTertiary} border ${themeClasses.border} rounded px-2 py-1 text-xs ${themeClasses.text} w-64`}
-                />
-                <Search className={`w-4 h-4 ${themeClasses.textSecondary}`} />
-                <Maximize2 className={`w-4 h-4 ${themeClasses.textSecondary} hover:${themeClasses.textPrimary} cursor-pointer`} />
-                <X 
-                  className={`w-4 h-4 ${themeClasses.textSecondary} hover:${themeClasses.textPrimary} cursor-pointer`}
-                  onClick={() => setIsTerminalOpen(false)}
-                />
-              </div>
-            </div>
+  <div
+            id="app-terminal-container"
+            className={`fixed bottom-0 flex flex-col z-50 bg-vscode-secondary shadow-2xl border-t border-vscode transition-all duration-300 ${
+              isExplorerCollapsed ? 'left-12' : `left-[${sidebarWidth + 48}px]`
+            }`}
+            style={{ 
+              height: `${terminalHeight}px`,
+              right: '0px',
+              left: isExplorerCollapsed ? '48px' : `${sidebarWidth + 48}px`
+            }}
+          >
+    {/* Terminal resize handle */}
+            <div 
+              className={`terminal-resize-handle absolute top-0 left-0 right-0 h-1 cursor-row-resize hover:bg-vscode-accent/50 transition-all duration-200 ${isTerminalResizing ? 'bg-vscode-accent' : 'hover:bg-vscode-accent'}`}
+              onMouseDown={handleMouseDown}
+              title="Drag to resize terminal height"
+            />
 
-            {/* Panel Content */}
-            <div className="flex-1 overflow-y-auto" ref={terminalRef}>
-              {activePanel === 'TERMINAL' && (
-                <div className="p-4 font-mono text-sm h-full flex flex-col">
-                  <div className="flex-1 overflow-y-auto">
-                    {terminalHistory.map((entry, index) => (
-                      <div key={index} className="mb-2">
-                        <div className="flex items-center gap-2 text-green-400">
-                          <span>$</span>
-                          <span>{entry.command}</span>
-                          <span className={`${themeClasses.textSecondary} text-xs ml-auto`}>{entry.timestamp}</span>
-                        </div>
-                        <div className={`${themeClasses.text} ml-4 mb-2`}>{entry.output}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className={`flex items-center gap-2 mt-2 border-t ${themeClasses.border} pt-2`}>
-                    <span className="text-green-400">$</span>
-                    <input
-                      type="text"
-                      value={currentCommand}
-                      onChange={(e) => setCurrentCommand(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      className={`flex-1 bg-transparent ${themeClasses.text} outline-none`}
-                      placeholder="Type a command (try 'help')"
-                      autoFocus
-                    />
-                    <button
-                      onClick={() => handleTerminalCommand(currentCommand)}
-                      className="text-blue-400 hover:text-blue-300"
-                    >
-                      <Play className="w-4 h-4" />
-                    </button>
+                        <div id="app-terminal-header" className="bg-vscode-secondary px-3 py-2 flex items-center justify-between border border-vscode">
+                <div id="app-terminal-header-left" className="flex items-start justify-between gap-3">
+                  <div id="app-terminal-icon" className="flex items-start gap-2 justify-between w-5 h-5 text-vscode-primary">
+                    <span className="text-sm" style={{ fontFamily: 'Consolas, "Courier New", monospace' }}>{'\>_'}</span>
+                    <span id="app-terminal-label" className="text-vscode-secondary gap-2   text-sm " 
+                      style={{ fontFamily: 'Consolas, "Courier New", monospace' }}>Terminal</span>
                   </div>
                 </div>
-              )}
-              {activePanel === 'OUTPUT' && (
-                <div className={`p-4 text-sm ${themeClasses.textSecondary}`}>
-                  <div>[Extension Host] Portfolio loaded successfully</div>
-                  <div>[Extension Host] All components rendered</div>
-                  <div>[Extension Host] Interactive terminal ready</div>
+                
+                <div id="app-terminal-controls" className="flex items-center gap-2">
+                  <button
+                    id="app-terminal-close-btn"
+                       onClick={(e) => {
+                    e.stopPropagation();
+                    setIsTerminalOpen(false);
+                    setIsTerminalMinimized(false);
+                   // Reset active nav item when closing terminal
+                   if (leftNavActiveItem === 'terminal') {
+                     setLeftNavActiveItem('explorer');
+                   }
+                  }}
+               
+                    className="p-1 hover:bg-red-600 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-gray-300 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
-              )}
+              </div>
+          
+              <Terminal id="app-terminal" />
             </div>
-          </div>
           )}
         </div>
       </div>
 
       {/* Context Menu */}
-      {contextMenu.show && (
+      {contextMenu && (
         <div 
-          className={`fixed ${themeClasses.bgSecondary} border ${themeClasses.border} rounded-lg shadow-lg py-2 z-50`}
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+          id="app-context-menu"
+          className="fixed bg-vscode-secondary border border-vscode-border rounded-lg shadow-lg py-2 z-50 context-menu"
+          style={{ 
+            left: contextMenu.x, 
+            top: contextMenu.y,
+            minWidth: '150px'
+          }}
         >
-          <button
-            onClick={() => { downloadResume(); trackContactClick('resume_download'); }}
-            className={`flex items-center gap-2 px-4 py-2 text-sm ${themeClasses.text} hover:${themeClasses.textPrimary} ${themeClasses.hover} w-full text-left`}
-          >
-            <Download className="w-4 h-4" />
-            Download Resume
-          </button>
-        </div>
-      )}
-
-      {/* Status Bar */}
-      <div className="bg-blue-600 text-white px-4 py-1 flex items-center justify-between text-xs relative">
-        <div className="flex items-center gap-4">
-          <span>Codespaces: obscure space meme</span>
-          <div className="flex items-center gap-2">
-            <GitBranch className="w-3 h-3" />
-            <span>master*</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-            <span>0</span>
-            <span className="w-2 h-2 bg-yellow-500 rounded-full ml-2"></span>
-            <span>0</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          {!isTerminalOpen && (
+          {contextMenu.fileName === 'resume.pdf' && (
             <button
-              onClick={() => setIsTerminalOpen(true)}
-              className="flex items-center gap-1 hover:bg-blue-700 px-2 py-1 rounded transition-colors"
+              id="app-context-menu-download"
+              onClick={downloadResume}
+              className="w-full px-4 py-2 text-left text-vscode-text-primary hover:bg-vscode-bg-tertiary transition-colors flex items-center gap-2"
             >
-              <TerminalIcon className="w-3 h-3" />
-              <span>Terminal</span>
+              <Download id="app-context-menu-download-icon" className="w-4 h-4" />
+              Download Resume
             </button>
           )}
-          <span>Portfolio Ready</span>
-          <span>Layout: US</span>
         </div>
-      </div>
+      )}
+      <StatusBar/>
     </div>
   );
 }
