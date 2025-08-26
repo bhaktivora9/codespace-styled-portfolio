@@ -144,7 +144,7 @@ The template supports both light and dark themes. Colors are defined using CSS v
 - Background colors
 - Text colors
 - Border colors
-For detailed understanding of theme usage please refer to the [theme reference](/docs/THEME) .
+For detailed understanding of theme usage please refer to the [theme reference](/docs/THEME.md) .
 
 
 ## 📱 Responsive Design
