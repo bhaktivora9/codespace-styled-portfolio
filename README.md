@@ -144,7 +144,7 @@ The template supports both light and dark themes. Colors are defined using CSS v
 - Background colors
 - Text colors
 - Border colors
-For detailed understanding of theme usage please refer to the [theme reference](/theme_doc) .
+For detailed understanding of theme usage please refer to the [theme reference](/docs/THEME) .
 
 
 ## 📱 Responsive Design
@@ -207,7 +207,7 @@ export const analytics = {
 
 ## 📄 License
 
-[MIT License](/LICENSE) - feel free to use this template for your portfolio!
+[MIT License](/docs/LICENSE) - feel free to use this template for your portfolio!
 
 ## Acknowledgments
 

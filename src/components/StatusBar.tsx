@@ -11,7 +11,7 @@ export const StatusBar: React.FC = () => {
     <div className="bg-vscode-secondary text-vscode-muted px-4 py-1 flex items-center justify-between text-xs relative animate-slide-up">
       {/* Left section */}
       <div className="flex items-center gap-4">
-        <span className="animate-slide-in-left">Codespaces: bhakti.dev-github-theme</span>
+        <span className="animate-slide-in-left">Codespaces: fullstack.dev-github-theme</span>
         <div className="flex items-center gap-2">
           <GitBranch className="w-3 h-3 hover-bounce" />
           <span className="animate-slide-in-right stagger-1">master*</span>
