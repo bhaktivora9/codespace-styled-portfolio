@@ -18,53 +18,53 @@ For detailed understanding of theme usage please refer to the color reference be
 
 | Color Variable | Light Theme | Dark Theme | Usage |
 |---|---|---|---|
-| `--vscode-bg-primary` | `#ffffff` | `#1e1e1e` | Main canvas color |
-| `--vscode-bg-secondary` | `#f3f3f3` | `#2d2d30` | Panels and sidebars |
-| `--vscode-bg-tertiary` | `#e8e8e8` | `#333333` | Elevated components |
-| `--vscode-bg-quaternary` | `#f8f8f8` | `#252526` | Deeper nesting areas |
-| `--vscode-bg-panel` | `#f0f0f0` | `#37373d` | Distinct panel backgrounds |
+| `--vscode-bg-primary` | ![](https://img.shields.io/badge/-ffffff-ffffff?style=flat-square) `#ffffff` | ![](https://img.shields.io/badge/-1e1e1e-1e1e1e?style=flat-square) `#1e1e1e` | Main canvas color |
+| `--vscode-bg-secondary` | ![](https://img.shields.io/badge/-f3f3f3-f3f3f3?style=flat-square) `#f3f3f3` | ![](https://img.shields.io/badge/-2d2d30-2d2d30?style=flat-square) `#2d2d30` | Panels and sidebars |
+| `--vscode-bg-tertiary` | ![](https://img.shields.io/badge/-e8e8e8-e8e8e8?style=flat-square) `#e8e8e8` | ![](https://img.shields.io/badge/-333333-333333?style=flat-square) `#333333` | Elevated components |
+| `--vscode-bg-quaternary` | ![](https://img.shields.io/badge/-f8f8f8-f8f8f8?style=flat-square) `#f8f8f8` | ![](https://img.shields.io/badge/-252526-252526?style=flat-square) `#252526` | Deeper nesting areas |
+| `--vscode-bg-panel` | ![](https://img.shields.io/badge/-f0f0f0-f0f0f0?style=flat-square) `#f0f0f0` | ![](https://img.shields.io/badge/-37373d-37373d?style=flat-square) `#37373d` | Distinct panel backgrounds |
 
 ### Text Colors
 
 | Color Variable | Light Theme | Dark Theme | Usage |
 |---|---|---|---|
-| `--vscode-text-primary` | `#333333` | `#cccccc` | Main text for optimal readability |
-| `--vscode-text-secondary` | `#545454` | `#ADADAD` | Secondary information text |
-| `--vscode-text-tertiary` | `#666666` | `#858585` | Supporting text elements |
-| `--vscode-text-muted` | `#999999` | `#6a6a6a` | Hints and disabled states |
+| `--vscode-text-primary` | ![](https://img.shields.io/badge/-333333-333333?style=flat-square) `#333333` | ![](https://img.shields.io/badge/-cccccc-cccccc?style=flat-square) `#cccccc` | Main text for optimal readability |
+| `--vscode-text-secondary` | ![](https://img.shields.io/badge/-545454-545454?style=flat-square) `#545454` | ![](https://img.shields.io/badge/-ADADAD-ADADAD?style=flat-square) `#ADADAD` | Secondary information text |
+| `--vscode-text-tertiary` | ![](https://img.shields.io/badge/-666666-666666?style=flat-square) `#666666` | ![](https://img.shields.io/badge/-858585-858585?style=flat-square) `#858585` | Supporting text elements |
+| `--vscode-text-muted` | ![](https://img.shields.io/badge/-999999-999999?style=flat-square) `#999999` | ![](https://img.shields.io/badge/-6a6a6a-6a6a6a?style=flat-square) `#6a6a6a` | Hints and disabled states |
 
 ### Border Colors
 
 | Color Variable | Light Theme | Dark Theme | Usage |
 |---|---|---|---|
-| `--vscode-border` | `#d4d4d4` | `#3C3C40` | General border color |
+| `--vscode-border` | ![](https://img.shields.io/badge/-d4d4d4-d4d4d4?style=flat-square) `#d4d4d4` | ![](https://img.shields.io/badge/-3C3C40-3C3C40?style=flat-square) `#3C3C40` | General border color |
 
 ### Primary Accent Colors
 
 | Color Variable | Light Theme | Dark Theme | Usage |
 |---|---|---|---|
-| `--vscode-accent` | `#C3504B` | `#D95852` | Primary accent color |
-| `--vscode-blue` | `#0066cc` | `#3F8FBA` | Blue accent |
-| `--vscode-green` | `#2D8162` | `#3F7F60` | Green accent |
-| `--vscode-yellow` | `#BAA83F` | `#CABB63` | Yellow accent |
-| `--vscode-red` | `#B22222` | `#DE4F4F` | Red accent |
+| `--vscode-accent` | ![](https://img.shields.io/badge/-C3504B-C3504B?style=flat-square) `#C3504B` | ![](https://img.shields.io/badge/-D95852-D95852?style=flat-square) `#D95852` | Primary accent color |
+| `--vscode-blue` | ![](https://img.shields.io/badge/-0066cc-0066cc?style=flat-square) `#0066cc` | ![](https://img.shields.io/badge/-3F8FBA-3F8FBA?style=flat-square) `#3F8FBA` | Blue accent |
+| `--vscode-green` | ![](https://img.shields.io/badge/-2D8162-2D8162?style=flat-square) `#2D8162` | ![](https://img.shields.io/badge/-3F7F60-3F7F60?style=flat-square) `#3F7F60` | Green accent |
+| `--vscode-yellow` | ![](https://img.shields.io/badge/-BAA83F-BAA83F?style=flat-square) `#BAA83F` | ![](https://img.shields.io/badge/-CABB63-CABB63?style=flat-square) `#CABB63` | Yellow accent |
+| `--vscode-red` | ![](https://img.shields.io/badge/-B22222-B22222?style=flat-square) `#B22222` | ![](https://img.shields.io/badge/-DE4F4F-DE4F4F?style=flat-square) `#DE4F4F` | Red accent |
 
 ### Extended Accent Colors
 
 | Color Variable | Light Theme | Dark Theme | Usage |
 |---|---|---|---|
-| `--vscode-orange` | `#BA6A3F` | `#CA8763` | Orange accent |
-| `--vscode-violet` | `#6900D1` | `#C48AFF` | Violet accent |
-| `--vscode-purple` | `#615FA0` | `#6897EE` | Purple accent |
-| `--vscode-teal` | `#0891b2` | `#0891b2` | Teal accent |
-| `--vscode-pink` | `#EC4899` | `#F472B6` | Pink accent |
-| `--vscode-indigo` | `#3F51BA` | `#6372CA` | Indigo accent |
-| `--vscode-emerald` | `#10B981` | `#34D399` | Emerald accent |
-| `--vscode-amber` | `#F59E0B` | `#FBBF24` | Amber accent |
-| `--vscode-rose` | `#F43F5E` | `#CA6372` | Rose accent |
-| `--vscode-sky` | `#0EA5E9` | `#38BDF8` | Sky accent |
-| `--vscode-coral` | `#FF7F7F` | `#FF9999` | Coral accent |
-| `--vscode-red-shade` | `#CB6762` | `#CB6762` | Red shade variant |
+| `--vscode-orange` |  `#BA6A3F` |  `#CA8763` | Orange accent |
+| `--vscode-violet` |  `#6900D1` |  `#C48AFF` | Violet accent |
+| `--vscode-purple` |  `#615FA0` |  `#6897EE` | Purple accent |
+| `--vscode-teal` |  `#0891b2` |  `#0891b2` | Teal accent |
+| `--vscode-pink` |  `#EC4899` |  `#F472B6` | Pink accent |
+| `--vscode-indigo` |  `#3F51BA` |  `#6372CA` | Indigo accent |
+| `--vscode-emerald` |  `#10B981` |  `#34D399` | Emerald accent |
+| `--vscode-amber` |  `#F59E0B` |  `#FBBF24` | Amber accent |
+| `--vscode-rose` |  `#F43F5E` |  `#CA6372` | Rose accent |
+| `--vscode-sky` |  `#0EA5E9` |  `#38BDF8` | Sky accent |
+| `--vscode-coral` |  `#FF7F7F` |  `#FF9999` | Coral accent |
+| `--vscode-red-shade` |  `#CB6762` |  `#CB6762` | Red shade variant |
 
 ## Hover State Colors
 
