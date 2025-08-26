@@ -135,7 +135,7 @@ Place these files in `public/assets/`:
 - `your-profile-image.jpg` - Your profile picture
 - `your-resume.pdf` - Your resume PDF
 
-## 🎨 Theming
+## Theming
 
 The template supports both light and dark themes. Colors are defined using CSS variables in `src/styles/index.css`. You can customize:
 
@@ -144,6 +144,8 @@ The template supports both light and dark themes. Colors are defined using CSS v
 - Background colors
 - Text colors
 - Border colors
+For detailed understanding of theme usage please refer to the [theme reference](/theme_doc) .
+
 
 ## 📱 Responsive Design
 
@@ -161,7 +163,7 @@ The interactive terminal supports these commands:
 - `projects` - Open Projects
 - `skills` - Open Skills
 - `contact` - Open Contact
-- `resume` - Open Resume
+- `resume` - downloads Resume
 - `clear` - Clear terminal
 - `ls` - List files
 - `whoami` - Show user info
@@ -207,21 +209,18 @@ export const analytics = {
 
 [MIT License](/LICENSE) - feel free to use this template for your portfolio!
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Inspired by VS Code's interface
 - Icons from Lucide React
 - Skill badges from Simple Icons
 
-## 📞 Support
+## Support
 
 If you have questions or need help customizing the template:
 - Open an issue on GitHub
-- Check the documentation
-- Join our Discord community
-
 ---
 
-**Made with for the developer community**
+**Built with ☕ and code for the dev community**
 
 Show your support by giving this project a ⭐!
