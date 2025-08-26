@@ -137,7 +137,7 @@ Place these files in `public/assets/`:
 
 ## 🎨 Theming
 
-The template supports both light and dark themes. Colors are defined using CSS variables in `src/styles/globals.css`. You can customize:
+The template supports both light and dark themes. Colors are defined using CSS variables in `src/styles/index.css`. You can customize:
 
 - Primary colors
 - Accent colors  
@@ -205,7 +205,7 @@ export const analytics = {
 
 ## 📄 License
 
-MIT License - feel free to use this template for your portfolio!
+[MIT License](/LICENSE) - feel free to use this template for your portfolio!
 
 ## 🙏 Acknowledgments
 
