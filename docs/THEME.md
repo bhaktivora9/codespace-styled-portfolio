@@ -49,23 +49,22 @@ For detailed understanding of theme usage please refer to the color reference be
 | `--vscode-yellow` | ![](https://img.shields.io/badge/-BAA83F-BAA83F?style=flat-square) `#BAA83F` | ![](https://img.shields.io/badge/-CABB63-CABB63?style=flat-square) `#CABB63` | Yellow accent |
 | `--vscode-red` | ![](https://img.shields.io/badge/-B22222-B22222?style=flat-square) `#B22222` | ![](https://img.shields.io/badge/-DE4F4F-DE4F4F?style=flat-square) `#DE4F4F` | Red accent |
 
-### Extended Accent Colors
+### Other Supported Accent Colors
 
 | Color Variable | Light Theme | Dark Theme | Usage |
 |---|---|---|---|
-| `--vscode-orange` |  `#BA6A3F` |  `#CA8763` | Orange accent |
-| `--vscode-violet` |  `#6900D1` |  `#C48AFF` | Violet accent |
-| `--vscode-purple` |  `#615FA0` |  `#6897EE` | Purple accent |
-| `--vscode-teal` |  `#0891b2` |  `#0891b2` | Teal accent |
-| `--vscode-pink` |  `#EC4899` |  `#F472B6` | Pink accent |
-| `--vscode-indigo` |  `#3F51BA` |  `#6372CA` | Indigo accent |
-| `--vscode-emerald` |  `#10B981` |  `#34D399` | Emerald accent |
-| `--vscode-amber` |  `#F59E0B` |  `#FBBF24` | Amber accent |
-| `--vscode-rose` |  `#F43F5E` |  `#CA6372` | Rose accent |
-| `--vscode-sky` |  `#0EA5E9` |  `#38BDF8` | Sky accent |
-| `--vscode-coral` |  `#FF7F7F` |  `#FF9999` | Coral accent |
-| `--vscode-red-shade` |  `#CB6762` |  `#CB6762` | Red shade variant |
-
+| `--vscode-orange` | ![](https://img.shields.io/badge/-BA6A3F-BA6A3F?style=flat-square) `#BA6A3F` | ![](https://img.shields.io/badge/-CA8763-CA8763?style=flat-square) `#CA8763` | Orange accent |
+| `--vscode-violet` | ![](https://img.shields.io/badge/-6900D1-6900D1?style=flat-square) `#6900D1` | ![](https://img.shields.io/badge/-C48AFF-C48AFF?style=flat-square) `#C48AFF` | Violet accent |
+| `--vscode-purple` | ![](https://img.shields.io/badge/-615FA0-615FA0?style=flat-square) `#615FA0` | ![](https://img.shields.io/badge/-6897EE-6897EE?style=flat-square) `#6897EE` | Purple accent |
+| `--vscode-teal` | ![](https://img.shields.io/badge/-0891b2-0891b2?style=flat-square) `#0891b2` | ![](https://img.shields.io/badge/-0891b2-0891b2?style=flat-square) `#0891b2` | Teal accent |
+| `--vscode-pink` | ![](https://img.shields.io/badge/-EC4899-EC4899?style=flat-square) `#EC4899` | ![](https://img.shields.io/badge/-F472B6-F472B6?style=flat-square) `#F472B6` | Pink accent |
+| `--vscode-indigo` | ![](https://img.shields.io/badge/-3F51BA-3F51BA?style=flat-square) `#3F51BA` | ![](https://img.shields.io/badge/-6372CA-6372CA?style=flat-square) `#6372CA` | Indigo accent |
+| `--vscode-emerald` | ![](https://img.shields.io/badge/-10B981-10B981?style=flat-square) `#10B981` | ![](https://img.shields.io/badge/-34D399-34D399?style=flat-square) `#34D399` | Emerald accent |
+| `--vscode-amber` | ![](https://img.shields.io/badge/-F59E0B-F59E0B?style=flat-square) `#F59E0B` | ![](https://img.shields.io/badge/-FBBF24-FBBF24?style=flat-square) `#FBBF24` | Amber accent |
+| `--vscode-rose` | ![](https://img.shields.io/badge/-F43F5E-F43F5E?style=flat-square) `#F43F5E` | ![](https://img.shields.io/badge/-CA6372-CA6372?style=flat-square) `#CA6372` | Rose accent |
+| `--vscode-sky` | ![](https://img.shields.io/badge/-0EA5E9-0EA5E9?style=flat-square) `#0EA5E9` | ![](https://img.shields.io/badge/-38BDF8-38BDF8?style=flat-square) `#38BDF8` | Sky accent |
+| `--vscode-coral` | ![](https://img.shields.io/badge/-FF7F7F-FF7F7F?style=flat-square) `#FF7F7F` | ![](https://img.shields.io/badge/-FF9999-FF9999?style=flat-square) `#FF9999` | Coral accent |
+| `--vscode-red-shade` | ![](https://img.shields.io/badge/-CB6762-CB6762?style=flat-square) `#CB6762` | ![](https://img.shields.io/badge/-CB6762-CB6762?style=flat-square) `#CB6762` | Red shade variant |
 ## Hover State Colors
 
 Each accent color has corresponding hover variants with darker tones for better interaction feedback. The hover colors are automatically generated with reduced opacity and darker hues.
