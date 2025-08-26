@@ -1,10 +1,10 @@
-# Github Codespaces Inspired Portfolio Template
+# GitHub VS-Codespaces Inspired Portfolio Template
 
-A modern, interactive portfolio website that mimics the Github Codespace interface.
+A modern, interactive portfolio website that mimics the Github VS-Codespace interface.
 
 ## 🚀 Features
 
-- **GH Codespaces Interface**:  Codespaces look and feel
+- **GH VS-Codespaces Interface**:  Codespaces like look and feel
 - **Interactive Terminal**: Functional terminal with custom commands
 - **File Explorer**: Navigate through different sections like files
 - **Responsive Design**: Works on all devices
