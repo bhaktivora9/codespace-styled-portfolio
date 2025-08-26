@@ -4,7 +4,7 @@ A modern, interactive portfolio website that mimics the Github Codespace interfa
 
 ## 🚀 Features
 
-- **VS Code Interface**: Authentic VS Code look and feel
+- **GH Codespaces Interface**:  Codespaces look and feel
 - **Interactive Terminal**: Functional terminal with custom commands
 - **File Explorer**: Navigate through different sections like files
 - **Responsive Design**: Works on all devices
