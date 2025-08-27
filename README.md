@@ -3,13 +3,13 @@
 A modern, interactive portfolio website that mimics the Github VS-Codespace interface.
 
 <details>
-   <summary>Gallery</summary>
+   <summary> Gallery</summary>
 
 | Dark | Light |
 |:--:|:--:|
 | <img width="604" height="604" alt="VS-Codespace-GitHub-Styled-Portfolio" src="https://github.com/user-attachments/assets/56b5ba74-6c54-4787-9df8-e4dd7cd1244f?auto=compress&w=604&h=604" /> **Home Page Dark**| <img width="3835" height="1827" alt="VS-Codespace-GitHub-Styled-Portfolio-Light" src="https://github.com/user-attachments/assets/2dae731d-dde3-4ee6-9486-885373859bc6" />**Home Page Light**| 
 |<img width="3837" height="1812" alt="AboutMeDark" src="https://github.com/user-attachments/assets/bc3a22fe-e4ab-4607-9245-2fadf08a35c4" /> **About Me Dark** | <img width="3840" height="1827" alt="AboutMeLight" src="https://github.com/user-attachments/assets/f0b5a703-3200-4a41-83f4-90ec1b139c93" /> **About Me Light**|
-
+</details>
 
 
 ## 🚀 Features
